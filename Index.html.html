@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Video Generator</title>
+<style>
+body{
+font-family: Arial, sans-serif;
+background:#0f172a;
+color:white;
+text-align:center;
+padding:20px;
+}
+.container{
+max-width:900px;
+margin:auto;
+}
+canvas{
+width:100%;
+max-height:500px;
+background:black;
+border-radius:12px;
+margin-top:15px;
+}
+button{
+padding:10px 20px;
+margin:10px;
+border:none;
+border-radius:8px;
+background:#22c55e;
+color:white;
+font-size:16px;
+cursor:pointer;
+}
+select,input{
+padding:10px;
+border-radius:8px;
+border:none;
+margin:10px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>AI Cinematic Video Generator</h2><input type="file" id="upload" accept="image/*"><select id="style">
+<option value="zoom">Cinematic Zoom</option>
+<option value="shake">Action Shake</option>
+<option value="pan">Slow Pan</option>
+<option value="flash">Hero Flash</option>
+</select><br>
+<button onclick="start()">Generate Video</button>
+<button onclick="downloadVideo()">Download Video</button><canvas id="canvas"></canvas>
+
+</div><script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 800;
+canvas.height = 450;
+
+let img = new Image();
+let animationId;
+let mediaRecorder;
+let chunks=[];
+
+upload.onchange = e => {
+const file = e.target.files[0];
+img.src = URL.createObjectURL(file);
+}
+
+function start(){
+let style = document.getElementById('style').value;
+let t=0;
+
+cancelAnimationFrame(animationId);
+
+function animate(){
+t+=0.02;
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+if(style==="zoom"){
+let scale = 1 + t*0.2;
+let w = canvas.width*scale;
+let h = canvas.height*scale;
+ctx.drawImage(img, -(w-canvas.width)/2, -(h-canvas.height)/2, w, h);
+}
+
+if(style==="shake"){
+let dx = Math.sin(t*20)*5;
+let dy = Math.cos(t*18)*5;
+ctx.drawImage(img, dx, dy, canvas.width, canvas.height);
+}
+
+if(style==="pan"){
+let x = Math.sin(t)*50;
+ctx.drawImage(img, x, 0, canvas.width, canvas.height);
+}
+
+if(style==="flash"){
+ctx.drawImage(img,0,0,canvas.width,canvas.height);
+ctx.fillStyle = "rgba(255,255,255,"+(Math.sin(t*5)+1)/4+")";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+animationId=requestAnimationFrame(animate);
+}
+
+animate();
+record();
+}
+
+function record(){
+chunks=[];
+let stream = canvas.captureStream(30);
+mediaRecorder = new MediaRecorder(stream);
+
+mediaRecorder.ondataavailable = e => chunks.push(e.data);
+
+mediaRecorder.onstop = e =>{
+let blob = new Blob(chunks,{type:'video/mp4'});
+window.videoURL = URL.createObjectURL(blob);
+}
+
+mediaRecorder.start();
+
+setTimeout(()=>{
+mediaRecorder.stop();
+},5000);
+}
+
+function downloadVideo(){
+if(!window.videoURL){
+alert("Generate video first");
+return;
+}
+let a = document.createElement('a');
+a.href = window.videoURL;
+a.download = "ai-video.mp4";
+a.click();
+}
+</script></body>
+</html>
